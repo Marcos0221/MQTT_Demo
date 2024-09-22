@@ -14,13 +14,17 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import org.eclipse.paho.client.mqttv3.IMqttActionListener;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+
+import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -69,12 +73,13 @@ public class MainActivity extends AppCompatActivity {
         });
 
         Init_MQTT();
+        ConnMQTTBroken(true);
 
         Button btn = findViewById(R.id.btn);
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                ConnMQTTBroken(!client.isConnected());
+                publish("test", "Hello");
             }
         });
 
@@ -113,7 +118,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * 发布订阅
+     *
+     * @param topic
+     * @param msg
+     */
+    public void publish(String topic, String msg) {
+        try {
+            client.publish(topic, new MqttMessage(msg.getBytes()));
+        } catch (MqttException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * 连接 & 断开 MQTT 连接
+     *
      * @param isConnected
      */
     public void ConnMQTTBroken(boolean isConnected) {
