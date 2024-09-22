@@ -7,6 +7,9 @@ pluginManagement {
                 includeGroupByRegex("androidx.*")
             }
         }
+        maven {
+            setUrl("https://repo.eclipse.org/content/repositories/paho-snapshots/")
+        }
         mavenCentral()
         gradlePluginPortal()
     }
