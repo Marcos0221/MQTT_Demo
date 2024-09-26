@@ -1,11 +1,12 @@
 package com.example.myapplication;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import androidx.activity.EdgeToEdge;
@@ -14,17 +15,13 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import org.eclipse.paho.client.mqttv3.IMqttActionListener;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
-import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
-
-import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -33,6 +30,10 @@ public class MainActivity extends AppCompatActivity {
 
     private MqttClient client;
     private MqttConnectOptions options;
+
+    private String server_addr = "192.168.0.26";
+    private String servet_port = "1883";
+    private String topic = "dev/pet";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,43 +46,45 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+        Config config = new Config(this);
         toggleButton1 = findViewById(R.id.water);
         toggleButton2 = findViewById(R.id.food);
 
-        toggleButton1.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
-                if (isChecked) {
+        Button btn = findViewById(R.id.configuration);
+        btn.setOnClickListener(view -> {
+            startActivity(new Intent(MainActivity.this,
+                    ConfigurationActivity.class));
+        });
+
+        if (config.exists()) {
+            server_addr = config.getServer_addr();
+            servet_port = config.getServer_port();
+            topic = config.getTopic();
+            Init_MQTT();
+            ConnMQTTBroken(true);
+
+            toggleButton1.setOnCheckedChangeListener((compoundButton, isChecked) -> {
+                if (!isChecked) {
                     // 开启
-                    Log.i(TAG, "开启");
+                    publish(topic, "WATER_OPEN");
                 } else {
                     // 关闭
-                    Log.i(TAG, "关闭");
+                    publish(topic, "WATER_CLOSE");
                 }
-            }
-        });
+            });
 
-        toggleButton2.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
-                if (isChecked) {
-                    // 开启
+            toggleButton2.setOnCheckedChangeListener((compoundButton, isChecked) -> {
+                if (!isChecked) {
+                    publish(topic, "FOOD_OPEN");
                 } else {
-                    // 关闭
+                    publish(topic, "FOOD_CLOSE");
                 }
-            }
-        });
+            });
+        } else {
+            Toast.makeText(this, "还没有生成配置文件，请点击设置配置",
+                    Toast.LENGTH_LONG).show();
+        }
 
-        Init_MQTT();
-        ConnMQTTBroken(true);
-
-        Button btn = findViewById(R.id.btn);
-        btn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                publish("test", "Hello");
-            }
-        });
 
     }
 
@@ -90,10 +93,9 @@ public class MainActivity extends AppCompatActivity {
      */
     public void Init_MQTT() {
         try {
-            client = new MqttClient("tcp://192.168.3.217:1883",
-                    "test_1234",
+            client = new MqttClient("tcp://" + server_addr + ":" +servet_port,
+                    "Android_Terminal",
                     new MemoryPersistence());
-            Log.i(TAG, "创建client对象");
         } catch (MqttException e) {
             e.printStackTrace();
         }
